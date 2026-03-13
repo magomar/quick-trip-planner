@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Quick Trip Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 p-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+            <a href="/" class="p-2 rounded-lg hover:bg-slate-100 transition-colors" title="Back to Map">
+                <i data-lucide="arrow-left" class="w-5 h-5 text-slate-500"></i>
+            </a>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">Airport Networks</h1>
+                <p class="text-xs text-slate-500 uppercase font-semibold tracking-wider">Country Data Management</p>
+            </div>
+        </div>
+        <button id="refreshBtn" onclick="refreshData()"
+                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            Refresh Data
+        </button>
+    </header>
+
+    <!-- Country Grid -->
+    <main class="max-w-4xl mx-auto p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wider">Available Countries</h2>
+                <p class="text-xs text-slate-400 mt-1">Enable countries to load their airport and route data</p>
+            </div>
+            <span id="activeCount" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">0 Active</span>
+        </div>
+
+        <div id="countryGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Populated by admin.js -->
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+/* --- Quick Trip Planner — Custom Styles --- */
+
+/* Map fills container */
+#map { height: 100%; width: 100%; z-index: 1; }
+
+/* Leaflet tooltip overrides */
+.custom-tooltip {
+    background: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.detail-tooltip {
+    background: white !important;
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 14px !important;
+    box-shadow: 0 20px 40px -8px rgba(0,0,0,0.15) !important;
+    opacity: 1 !important;
+    min-width: 200px;
+}
+
+/* Clean select */
+select { appearance: none; }
+
+/* Leaflet line transitions */
+.leaflet-interactive { transition: stroke-width 0.2s, stroke-opacity 0.2s; }
+
+/* Airport search */
+.airport-search-wrapper {
+    position: relative;
+}
+
+.airport-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-top: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px -8px rgba(0,0,0,0.15);
+    z-index: 100;
+    display: none;
+}
+
+.airport-results.active {
+    display: block;
+}
+
+.airport-result-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.airport-result-item:last-child {
+    border-bottom: none;
+}
+
+.airport-result-item:hover {
+    background: #f0f9ff;
+}
+
+.airport-result-item .iata {
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 13px;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 36px;
+    text-align: center;
+}
+
+.airport-result-item .city {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.airport-result-item .name {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toast {
+    background: #0f172a;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    animation: toast-in 0.3s ease, toast-out 0.3s ease 2.7s forwards;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toast.warning {
+    background: #f59e0b;
+    color: #1e293b;
+}
+
+.toast.success {
+    background: #10b981;
+}
+
+.toast.error {
+    background: #ef4444;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-out {
+    from { opacity: 1; }
+    to { opacity: 0; transform: translateY(-10px); }
+}
+
+/* Admin page — toggle switch */
+.toggle {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    cursor: pointer;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 999px;
+    transition: background 0.25s;
+}
+
+.toggle input:checked + .toggle-track {
+    background: #2563eb;
+}
+
+.toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.25s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.toggle input:checked ~ .toggle-thumb {
+    transform: translateX(22px);
+}
+
+.toggle.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Country card */
+.country-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.country-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    border-color: #cbd5e1;
+}
+
+.country-card.locked {
+    background: #f8fafc;
+}
+
+.country-card .flag {
+    font-size: 32px;
+    line-height: 1;
+}
+
+.country-card .info {
+    flex: 1;
+}
+
+.country-card .info .name {
+    font-weight: 700;
+    font-size: 15px;
+    color: #1e293b;
+}
+
+.country-card .info .badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.country-card .info .badge.soon {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.country-card .info .badge.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* Glassmorphism panels */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px -8px rgba(0,0,0,0.08);
+}
+
+/* Scrollbar styling */
+.airport-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.airport-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.airport-results::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
