@@ -39,7 +39,7 @@ def init_db() -> None:
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 origin_iata TEXT NOT NULL REFERENCES airports(iata),
                 dest_iata   TEXT NOT NULL REFERENCES airports(iata),
-                days        TEXT NOT NULL,
+                days        TEXT NOT NULL DEFAULT '[]',
                 has_am      INTEGER NOT NULL DEFAULT 0,
                 has_pm      INTEGER NOT NULL DEFAULT 0,
                 dep_am      TEXT,

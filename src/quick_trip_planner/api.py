@@ -40,8 +40,7 @@ def get_routes(origin_iata: str):
             """SELECT r.*, a.city as dest_city, a.name as dest_name, a.lat as dest_lat, a.lon as dest_lon
                FROM routes r
                JOIN airports a ON r.dest_iata = a.iata
-               JOIN countries c ON a.country_code = c.code
-               WHERE r.origin_iata = ? AND c.enabled = 1
+               WHERE r.origin_iata = ?
                ORDER BY a.city""",
             (origin_iata.upper(),),
         ).fetchall()
