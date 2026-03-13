@@ -4,8 +4,8 @@
 let map, markersLayer, pathsLayer, homeMarker;
 let selectedAirport = null; // { iata, lat, lon, city, ... }
 let allRoutes = [];
-let depDay = 5; // Friday
-let retDay = 0; // Sunday
+let depDay = -1; // Any day
+let retDay = -1; // Any day
 let searchTimeout = null;
 
 // --- Init ---
@@ -143,6 +143,7 @@ function getCurvedPath(from, to) {
 }
 
 function formatTimeLine(label, amTime, pmTime, colorClass) {
+    if (!amTime && !pmTime) return '';
     let html = `<div class="flex flex-col gap-1 mt-2">
         <span class="text-[10px] font-bold uppercase ${colorClass}">${label}</span>`;
     if (amTime) html += `<div class="flex justify-between items-center text-xs gap-4"><span>Morning</span><span class="font-mono bg-slate-100 px-1.5 rounded">${amTime}</span></div>`;
@@ -157,23 +158,45 @@ function renderRoutes() {
 
     if (!selectedAirport) return;
 
-    const filtered = allRoutes.filter(r =>
-        r.days.includes(depDay) && r.days.includes(retDay)
-    );
+    const filtered = allRoutes.filter(r => {
+        const days = r.days || [];
+        const hasSchedule = days.length > 0;
+
+        // If both selectors are "Any day", show all routes
+        if (depDay === -1 && retDay === -1) return true;
+
+        // Routes without schedule data are hidden when a specific day is selected
+        if (!hasSchedule) return false;
+
+        // Check departure day match
+        if (depDay !== -1 && !days.includes(depDay)) return false;
+
+        // Check return day match
+        if (retDay !== -1 && !days.includes(retDay)) return false;
+
+        return true;
+    });
 
     const homeCoords = [selectedAirport.lat, selectedAirport.lon];
 
     filtered.forEach(route => {
         const destCoords = [route.dest_lat, route.dest_lon];
+        const hasSchedule = (route.days || []).length > 0;
 
         // Destination marker
         const marker = L.circleMarker(destCoords, {
             radius: 6,
             color: 'white',
-            fillColor: '#475569',
+            fillColor: hasSchedule ? '#475569' : '#94a3b8',
             fillOpacity: 1,
             weight: 1.5,
         }).addTo(markersLayer);
+
+        const depTimesHtml = formatTimeLine('Departure', route.dep_am, route.dep_pm, 'text-blue-600');
+        const retTimesHtml = formatTimeLine('Return', route.ret_am, route.ret_pm, 'text-orange-600');
+        const scheduleHtml = (depTimesHtml || retTimesHtml)
+            ? `${depTimesHtml}${retTimesHtml}`
+            : '<div class="text-[10px] text-slate-400 mt-2 italic">Schedule not yet available</div>';
 
         const tooltipHtml = `
             <div class="min-w-[200px] font-sans">
@@ -184,8 +207,7 @@ function renderRoutes() {
                     </div>
                     <span class="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">DIRECT</span>
                 </div>
-                ${formatTimeLine('Departure', route.dep_am, route.dep_pm, 'text-blue-600')}
-                ${formatTimeLine('Return', route.ret_am, route.ret_pm, 'text-orange-600')}
+                ${scheduleHtml}
             </div>`;
 
         marker.bindTooltip(tooltipHtml, {
@@ -200,8 +222,8 @@ function renderRoutes() {
         L.polyline([homeCoords, destCoords], {
             color: '#2563eb',
             weight: 2,
-            opacity: 0.55,
-            dashArray: route.has_am ? null : '8, 8',
+            opacity: hasSchedule ? 0.55 : 0.25,
+            dashArray: (hasSchedule && route.has_am) ? null : '8, 8',
         }).addTo(pathsLayer);
 
         // Return line (orange, curved)
@@ -209,8 +231,8 @@ function renderRoutes() {
         L.polyline(curved, {
             color: '#f97316',
             weight: 2,
-            opacity: 0.55,
-            dashArray: route.has_am ? null : '5, 10',
+            opacity: hasSchedule ? 0.55 : 0.25,
+            dashArray: (hasSchedule && route.has_am) ? null : '5, 10',
             smoothFactor: 2,
         }).addTo(pathsLayer);
     });
@@ -218,7 +240,9 @@ function renderRoutes() {
     // Update counters
     document.getElementById('routeCount').innerText = `${filtered.length} Cities`;
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    document.getElementById('statusText').innerText = `${dayNames[depDay]} → ${dayNames[retDay]} | ${filtered.length} ROUTES`;
+    const depLabel = depDay === -1 ? 'Any' : dayNames[depDay];
+    const retLabel = retDay === -1 ? 'Any' : dayNames[retDay];
+    document.getElementById('statusText').innerText = `${depLabel} → ${retLabel} | ${filtered.length} ROUTES`;
 }
 
 window.onload = init;
