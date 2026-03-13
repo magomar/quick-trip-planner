@@ -7,7 +7,7 @@ build/
 .venv/
 
 # SQLite database
-data/*.db
+data/
 
 # Environment
 .env
