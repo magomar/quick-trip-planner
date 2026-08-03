@@ -49,6 +49,20 @@ def init_db() -> None:
                 UNIQUE(origin_iata, dest_iata)
             );
 
+            CREATE TABLE IF NOT EXISTS flights (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                origin_iata TEXT NOT NULL REFERENCES airports(iata),
+                dest_iata   TEXT NOT NULL REFERENCES airports(iata),
+                flight_no   TEXT,
+                airline     TEXT,
+                dep_time    TEXT,
+                ret_time    TEXT,
+                days        TEXT NOT NULL DEFAULT '[]',
+                UNIQUE(origin_iata, dest_iata, flight_no, dep_time)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_routes_origin ON routes(origin_iata);
+            CREATE INDEX IF NOT EXISTS idx_flights_origin ON flights(origin_iata);
+            CREATE INDEX IF NOT EXISTS idx_flights_origin_dest ON flights(origin_iata, dest_iata);
             CREATE INDEX IF NOT EXISTS idx_airports_country ON airports(country_code);
         """)

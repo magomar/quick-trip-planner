@@ -6,7 +6,12 @@ from fastapi import APIRouter, HTTPException
 
 from .db import get_db
 from .data_provider import refresh_data
-from .models import Airport, Country, RouteWithAirport
+from .models import (
+    Airport,
+    Country,
+    DestinationRouteSummary,
+    FlightDetail,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -33,10 +38,14 @@ def list_airports(search: str | None = None):
     return [Airport(**dict(r)) for r in rows]
 
 
-@router.get("/routes/{origin_iata}", response_model=list[RouteWithAirport])
-def get_routes(origin_iata: str):
+@router.get("/routes/{origin_iata}", response_model=list[DestinationRouteSummary])
+def get_routes(
+    origin_iata: str,
+    dep_day: int | None = None,
+    ret_day: int | None = None,
+):
     with get_db() as conn:
-        rows = conn.execute(
+        routes_rows = conn.execute(
             """SELECT r.*, a.city as dest_city, a.name as dest_name, a.lat as dest_lat, a.lon as dest_lon
                FROM routes r
                JOIN airports a ON r.dest_iata = a.iata
@@ -44,13 +53,88 @@ def get_routes(origin_iata: str):
                ORDER BY a.city""",
             (origin_iata.upper(),),
         ).fetchall()
+
+        outbound_rows = conn.execute(
+            """SELECT * FROM flights WHERE origin_iata = ?""",
+            (origin_iata.upper(),),
+        ).fetchall()
+
+        return_rows = conn.execute(
+            """SELECT * FROM flights WHERE dest_iata = ?""",
+            (origin_iata.upper(),),
+        ).fetchall()
+
+    outbound_by_dest: dict[str, list[dict]] = {}
+    for fr in outbound_rows:
+        fd = dict(fr)
+        fd["days"] = json.loads(fd["days"])
+        outbound_by_dest.setdefault(fd["dest_iata"], []).append(fd)
+
+    return_by_dest: dict[str, list[dict]] = {}
+    for fr in return_rows:
+        fd = dict(fr)
+        fd["days"] = json.loads(fd["days"])
+        return_by_dest.setdefault(fd["origin_iata"], []).append(fd)
+
     result = []
-    for r in rows:
+    for r in routes_rows:
         d = dict(r)
-        d["days"] = json.loads(d["days"])
+        days = json.loads(d["days"])
+        d["days"] = days
         d["has_am"] = bool(d["has_am"])
         d["has_pm"] = bool(d["has_pm"])
-        result.append(RouteWithAirport(**d))
+
+        dest_iata = d["dest_iata"]
+        raw_outbound = outbound_by_dest.get(dest_iata, [])
+        raw_return = return_by_dest.get(dest_iata, [])
+
+        matching_outbound = []
+        for fl in raw_outbound:
+            if dep_day is not None and dep_day != -1:
+                if dep_day not in fl["days"]:
+                    continue
+            matching_outbound.append(FlightDetail(**fl))
+
+        matching_return = []
+        for fl in raw_return:
+            if ret_day is not None and ret_day != -1:
+                if ret_day not in fl["days"]:
+                    continue
+            matching_return.append(FlightDetail(**fl))
+
+        has_schedule = len(days) > 0 or bool(d["ret_am"] or d["ret_pm"])
+
+        # Departure day filter check
+        if dep_day is not None and dep_day != -1:
+            if not has_schedule:
+                continue
+            if len(raw_outbound) > 0 and len(matching_outbound) == 0:
+                continue
+            if len(raw_outbound) == 0 and dep_day not in days:
+                continue
+
+        # Return day filter check
+        if ret_day is not None and ret_day != -1:
+            if not has_schedule:
+                continue
+            if len(raw_return) > 0 and len(matching_return) == 0:
+                continue
+            if len(raw_return) == 0 and ret_day not in days:
+                continue
+
+        d["has_schedule"] = has_schedule
+        d["outbound_count"] = len(matching_outbound)
+        d["return_count"] = len(matching_return)
+        total_count = len(matching_outbound) + len(matching_return)
+        d["flight_count"] = (
+            total_count if total_count > 0 else (1 if has_schedule else 0)
+        )
+        d["outbound_flights"] = matching_outbound
+        d["return_flights"] = matching_return
+        d["flights"] = matching_outbound
+
+        result.append(DestinationRouteSummary(**d))
+
     return result
 
 
@@ -63,23 +147,41 @@ def trigger_refresh():
 
 # --- Admin endpoints ---
 
+
 @router.get("/admin/countries", response_model=list[Country])
 def list_countries():
     with get_db() as conn:
         rows = conn.execute("SELECT * FROM countries ORDER BY name").fetchall()
-    return [Country(**{**dict(r), "enabled": bool(r["enabled"]), "available": bool(r["available"])}) for r in rows]
+    return [
+        Country(
+            **{
+                **dict(r),
+                "enabled": bool(r["enabled"]),
+                "available": bool(r["available"]),
+            }
+        )
+        for r in rows
+    ]
 
 
 @router.put("/admin/countries/{code}")
 def toggle_country(code: str, enabled: bool):
     with get_db() as conn:
-        row = conn.execute("SELECT * FROM countries WHERE code = ?", (code.upper(),)).fetchone()
+        row = conn.execute(
+            "SELECT * FROM countries WHERE code = ?", (code.upper(),)
+        ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Country not found")
         if not row["available"]:
-            raise HTTPException(status_code=400, detail="This country is not yet available. Coming soon!")
+            raise HTTPException(
+                status_code=400,
+                detail="This country is not yet available. Coming soon!",
+            )
 
-        conn.execute("UPDATE countries SET enabled = ? WHERE code = ?", (int(enabled), code.upper()))
+        conn.execute(
+            "UPDATE countries SET enabled = ? WHERE code = ?",
+            (int(enabled), code.upper()),
+        )
         conn.commit()
 
     return {"status": "ok", "code": code.upper(), "enabled": enabled}

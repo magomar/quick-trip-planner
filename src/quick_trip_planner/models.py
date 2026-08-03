@@ -38,3 +38,24 @@ class RouteWithAirport(Route):
     dest_name: str
     dest_lat: float
     dest_lon: float
+
+
+class FlightDetail(BaseModel):
+    id: int
+    origin_iata: str
+    dest_iata: str
+    flight_no: str | None = None
+    airline: str | None = None
+    dep_time: str | None = None
+    ret_time: str | None = None
+    days: list[int]
+
+
+class DestinationRouteSummary(RouteWithAirport):
+    flight_count: int = 0
+    outbound_count: int = 0
+    return_count: int = 0
+    has_schedule: bool = False
+    outbound_flights: list[FlightDetail] = []
+    return_flights: list[FlightDetail] = []
+    flights: list[FlightDetail] = []

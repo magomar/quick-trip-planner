@@ -28,4 +28,5 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 def run():
     import uvicorn
+
     uvicorn.run("quick_trip_planner.main:app", host="0.0.0.0", port=8000, reload=True)
