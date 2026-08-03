@@ -1,6 +1,7 @@
 """FastAPI API routes for airports, routes, and admin country management."""
 
 import json
+import math
 
 from fastapi import APIRouter, HTTPException
 
@@ -38,6 +39,45 @@ def list_airports(search: str | None = None):
     return [Airport(**dict(r)) for r in rows]
 
 
+def _calculate_duration_mins(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
+    """Calculate flight duration in minutes based on Great-Circle distance."""
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dlon / 2) ** 2
+    )
+    c = 2 * math.asin(math.sqrt(a))
+    dist_km = R * c
+    flight_mins = int(25 + (dist_km / 750) * 60)
+    return max(35, flight_mins)
+
+
+def _enrich_flight_times(
+    fl: dict, orig_lat: float, orig_lon: float, dest_lat: float, dest_lon: float
+) -> dict:
+    """Calculate duration and arrival time for a flight dictionary."""
+    fl = dict(fl)
+    duration = _calculate_duration_mins(orig_lat, orig_lon, dest_lat, dest_lon)
+    fl["duration_mins"] = duration
+
+    dep = fl.get("dep_time")
+    if dep and ":" in dep:
+        try:
+            h, m = map(int, dep.split(":")[:2])
+            arr_mins = (h * 60 + m + duration) % 1440
+            fl["arr_time"] = f"{arr_mins // 60:02d}:{arr_mins % 60:02d}"
+        except ValueError:
+            fl["arr_time"] = None
+    else:
+        fl["arr_time"] = None
+
+    return fl
+
+
 @router.get("/routes/{origin_iata}", response_model=list[DestinationRouteSummary])
 def get_routes(
     origin_iata: str,
@@ -64,6 +104,11 @@ def get_routes(
             (origin_iata.upper(),),
         ).fetchall()
 
+        airports_rows = conn.execute(
+            """SELECT iata, lat, lon FROM airports"""
+        ).fetchall()
+        coords = {r["iata"]: (r["lat"], r["lon"]) for r in airports_rows}
+
     outbound_by_dest: dict[str, list[dict]] = {}
     for fr in outbound_rows:
         fd = dict(fr)
@@ -76,6 +121,8 @@ def get_routes(
         fd["days"] = json.loads(fd["days"])
         return_by_dest.setdefault(fd["origin_iata"], []).append(fd)
 
+    orig_coords = coords.get(origin_iata.upper(), (40.0, -3.0))
+
     result = []
     for r in routes_rows:
         d = dict(r)
@@ -85,6 +132,8 @@ def get_routes(
         d["has_pm"] = bool(d["has_pm"])
 
         dest_iata = d["dest_iata"]
+        dest_coords = coords.get(dest_iata, (d["dest_lat"], d["dest_lon"]))
+
         raw_outbound = outbound_by_dest.get(dest_iata, [])
         raw_return = return_by_dest.get(dest_iata, [])
 
@@ -93,14 +142,20 @@ def get_routes(
             if dep_day is not None and dep_day != -1:
                 if dep_day not in fl["days"]:
                     continue
-            matching_outbound.append(FlightDetail(**fl))
+            enriched = _enrich_flight_times(
+                fl, orig_coords[0], orig_coords[1], dest_coords[0], dest_coords[1]
+            )
+            matching_outbound.append(FlightDetail(**enriched))
 
         matching_return = []
         for fl in raw_return:
             if ret_day is not None and ret_day != -1:
                 if ret_day not in fl["days"]:
                     continue
-            matching_return.append(FlightDetail(**fl))
+            enriched = _enrich_flight_times(
+                fl, dest_coords[0], dest_coords[1], orig_coords[0], orig_coords[1]
+            )
+            matching_return.append(FlightDetail(**enriched))
 
         has_schedule = len(days) > 0 or bool(d["ret_am"] or d["ret_pm"])
 

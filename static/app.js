@@ -160,6 +160,15 @@ async function selectAirport(airport) {
       });
 }
 
+function formatDuration(mins) {
+    if (!mins) return '';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+}
+
 // --- Side Panel ---
 function openFlightPanel(route) {
     activeSelectedDest = route;
@@ -196,17 +205,30 @@ function openFlightPanel(route) {
             const flightDays = f.days || [];
             const carrier = f.airline || 'Scheduled Flight';
             const num = f.flight_no ? `#${f.flight_no}` : `Flight ${i + 1}`;
+            const durStr = formatDuration(f.duration_mins);
+
             return `
                 <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm mb-2 hover:border-blue-300 transition-all">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <span class="font-bold text-xs text-slate-800">${carrier} <span class="font-mono text-slate-400 font-normal">${num}</span></span>
-                        <span class="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">OUTBOUND</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="font-bold text-xs text-slate-800">${carrier}</span>
+                            <span class="text-xs text-slate-400 font-mono ml-1">${num}</span>
+                        </div>
+                        ${durStr ? `<span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full flex items-center gap-1" title="Estimated flight duration"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>${durStr}</span>` : ''}
                     </div>
-                    <div class="flex items-center justify-between text-xs bg-blue-50/50 p-2 rounded border border-blue-100/50 my-2">
-                        <span class="text-[10px] font-bold text-blue-600 uppercase">Departure Time</span>
-                        <span class="font-mono font-bold text-slate-800">${f.dep_time || '—'}</span>
+                    
+                    <div class="grid grid-cols-2 gap-2 my-2 text-xs bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/50">
+                        <div>
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-blue-600 block mb-0.5">Dep / Boarding</span>
+                            <span class="font-mono font-bold text-slate-800 text-sm">${f.dep_time || '—'}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Arrival</span>
+                            <span class="font-mono font-bold text-slate-800 text-sm">${f.arr_time || '—'}</span>
+                        </div>
                     </div>
-                    <div class="flex gap-1 justify-between text-[10px]">
+
+                    <div class="flex gap-1 justify-between text-[10px] pt-1">
                         ${DAY_NAMES.map((day, idx) => {
                             const active = flightDays.includes(idx);
                             return `<span class="px-1.5 py-0.5 rounded font-bold ${active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}">${day}</span>`;
@@ -240,17 +262,30 @@ function openFlightPanel(route) {
             const flightDays = f.days || [];
             const carrier = f.airline || 'Scheduled Flight';
             const num = f.flight_no ? `#${f.flight_no}` : `Flight ${i + 1}`;
+            const durStr = formatDuration(f.duration_mins);
+
             return `
                 <div class="bg-white rounded-xl p-3.5 border border-slate-200 shadow-sm mb-2 hover:border-orange-300 transition-all">
-                    <div class="flex justify-between items-center mb-1.5">
-                        <span class="font-bold text-xs text-slate-800">${carrier} <span class="font-mono text-slate-400 font-normal">${num}</span></span>
-                        <span class="text-[10px] font-bold bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded">RETURN</span>
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <span class="font-bold text-xs text-slate-800">${carrier}</span>
+                            <span class="text-xs text-slate-400 font-mono ml-1">${num}</span>
+                        </div>
+                        ${durStr ? `<span class="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full flex items-center gap-1" title="Estimated flight duration"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>${durStr}</span>` : ''}
                     </div>
-                    <div class="flex items-center justify-between text-xs bg-orange-50/50 p-2 rounded border border-orange-100/50 my-2">
-                        <span class="text-[10px] font-bold text-orange-600 uppercase">Return Time</span>
-                        <span class="font-mono font-bold text-slate-800">${f.dep_time || '—'}</span>
+
+                    <div class="grid grid-cols-2 gap-2 my-2 text-xs bg-orange-50/50 p-2.5 rounded-lg border border-orange-100/50">
+                        <div>
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-orange-600 block mb-0.5">Dep / Boarding</span>
+                            <span class="font-mono font-bold text-slate-800 text-sm">${f.dep_time || '—'}</span>
+                        </div>
+                        <div>
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Arrival</span>
+                            <span class="font-mono font-bold text-slate-800 text-sm">${f.arr_time || '—'}</span>
+                        </div>
                     </div>
-                    <div class="flex gap-1 justify-between text-[10px]">
+
+                    <div class="flex gap-1 justify-between text-[10px] pt-1">
                         ${DAY_NAMES.map((day, idx) => {
                             const active = flightDays.includes(idx);
                             return `<span class="px-1.5 py-0.5 rounded font-bold ${active ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-400'}">${day}</span>`;

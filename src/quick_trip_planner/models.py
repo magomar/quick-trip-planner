@@ -47,7 +47,8 @@ class FlightDetail(BaseModel):
     flight_no: str | None = None
     airline: str | None = None
     dep_time: str | None = None
-    ret_time: str | None = None
+    arr_time: str | None = None
+    duration_mins: int | None = None
     days: list[int]
 
 
